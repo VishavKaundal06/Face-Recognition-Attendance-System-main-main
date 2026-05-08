@@ -84,10 +84,10 @@
                 
                 <div class="form-group">
                     <label>Personal Details</label>
-                    <input type="text" id="regName" placeholder="Full Name" class="input-field" style="margin-bottom: 10px;">
-                    <input type="text" id="regRoll" placeholder="Roll Number" class="input-field" style="margin-bottom: 10px;">
-                    <input type="email" id="regEmail" placeholder="Email" class="input-field" style="margin-bottom: 10px;">
-                    <input type="tel" id="regPhone" placeholder="Phone Number" class="input-field">
+                    <input type="text" id="regName" placeholder="Full Name" class="input-field" style="margin-bottom: 10px;" required maxlength="50">
+                    <input type="text" id="regRoll" placeholder="Roll Number" class="input-field" style="margin-bottom: 10px;" required maxlength="20">
+                    <input type="email" id="regEmail" placeholder="Email" class="input-field" style="margin-bottom: 10px;" required>
+                    <input type="tel" id="regPhone" placeholder="Phone Number" class="input-field" required pattern="[0-9]{10}">
                 </div>
                 
                 <div class="form-group">

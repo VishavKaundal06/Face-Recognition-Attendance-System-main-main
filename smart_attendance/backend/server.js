@@ -94,12 +94,8 @@ const apiLimiter = rateLimit({
 app.use(helmet());
 app.use(
   cors({
-    origin(origin, callback) {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true
+    origin: '*',
+    credentials: false
   })
 );
 app.use('/api', apiLimiter);

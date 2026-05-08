@@ -92,6 +92,21 @@ main {
     display: block;
 }
 
+.additional-links {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.additional-links a {
+    color: #f37321;
+    text-decoration: none;
+    margin: 0 10px;
+}
+
+.additional-links a:hover {
+    text-decoration: underline;
+}
+
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }

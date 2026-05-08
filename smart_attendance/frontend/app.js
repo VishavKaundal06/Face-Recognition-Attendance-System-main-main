@@ -1,10 +1,10 @@
 // Configuration
 const CONFIG = {
   API_URL: localStorage.getItem('apiUrl') || 'http://localhost:5050/api',
-  THRESHOLD: parseFloat(localStorage.getItem('threshold')) || 0.6,
+  THRESHOLD: parseFloat(localStorage.getItem('threshold')) || 0.7,
   MODEL_URL: 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights/',
   AUTO_MARK: localStorage.getItem('autoMarkEnabled') === 'true',
-  MULTI_FRAME: localStorage.getItem('multiFrameEnabled') !== 'false',
+  MULTI_FRAME: localStorage.getItem('multiFrameEnabled') === 'true',
   LIVENESS: localStorage.getItem('livenessEnabled') === 'true',
   LOCATION: localStorage.getItem('locationEnabled') === 'true'
 };
@@ -157,12 +157,15 @@ startBtn.addEventListener('click', async () => {
     });
     
     video.srcObject = stream;
-    video.addEventListener('play', startFaceDetection);
+    video.addEventListener('play', () => {
+      startFaceDetection();
+      captureBtn.disabled = false;
+      detectionStatus.textContent = '✓ Webcam started - Face detection active';
+    });
     
     startBtn.disabled = true;
     stopBtn.disabled = false;
-    captureBtn.disabled = false;
-    detectionStatus.textContent = '✓ Webcam started - Face detection active';
+    
   } catch (error) {
     console.error('Error accessing webcam:', error);
     detectionStatus.textContent = '✗ Error: Unable to access webcam. Check permissions.';
@@ -215,7 +218,9 @@ function startFaceDetection() {
 }
 
 // Capture and mark attendance
-captureBtn.addEventListener('click', async () => {
+captureBtn.addEventListener('click', () => markAttendance());
+
+async function markAttendance() {
   try {
     const detection = await captureMultiFrameDetection();
     if (!detection) {
@@ -238,7 +243,7 @@ captureBtn.addEventListener('click', async () => {
     showResult('error', 'Error', error.message);
     captureBtn.disabled = false;
   }
-});
+}
 
 async function captureMultiFrameDetection() {
   const ctx = canvas.getContext('2d');
@@ -421,21 +426,32 @@ async function markAttendanceFromDetection(detection, { autoMode = false } = {})
         const attendanceData = await attendanceResponse.json();
 
         if (attendanceData.success) {
-          showResult('success', '✓ Attendance Marked!', `Welcome, ${data.student.name}`);
+          showResult('success', `Welcome, ${data.student.name}!`, '✓ Attendance Marked successfully.');
+          
+          // Reset ready for the next student
+          setTimeout(() => {
+             resultBox.style.display = 'none';
+             detectionStatus.textContent = '✓ Webcam active - Ready for next student';
+          }, 3500);
         } else {
           showResult('error', 'Attendance Error', attendanceData.error);
         }
       } catch (networkError) {
         console.warn('Network error, saving offline:', networkError);
         await saveOfflineAttendance(payload);
-        showResult('success', '☁️ Offline Attendance Saved', `Network unavailable. ${data.student.name}'s attendance will sync later.`);
+        showResult('success', `Welcome, ${data.student.name}!`, `☁️ Network offline. Attendance saved locally and will sync later.`);
+        
+        setTimeout(() => {
+           resultBox.style.display = 'none';
+           detectionStatus.textContent = '✓ Webcam active - Ready for next student (Offline mode)';
+        }, 3500);
       }
     } else {
-      if (!autoMode) showResult('error', 'Face Not Recognized', 'Please register first or try again.');
+      if (!autoMode) showResult('error', 'Face Not Recognized', 'No matching face found. Please ensure you are registered or adjust lighting.');
     }
   } catch (error) {
-    console.error('Error:', error);
-    if (!autoMode) showResult('error', 'Error', error.message);
+    console.error('Error during recognition:', error);
+    if (!autoMode) showResult('error', 'Connection Error', error.message + ' (See console for details). Make sure the backend server uses https or localhost.');
   } finally {
     if (!autoMode) captureBtn.disabled = false;
     markInProgress = false;
