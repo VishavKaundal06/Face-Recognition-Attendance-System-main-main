@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login - HPTU Attendance System</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0b4f9c 0%, #0f7bbf 100%);
+      margin: 0;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      padding: 28px;
+    }
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .brand h2 {
+      margin: 0;
+      color: #0b4f9c;
+      font-size: 1.5rem;
+    }
+    .brand p {
+      margin: 0;
+      color: #546e7a;
+      font-size: 0.9rem;
+    }
+    label {
+      font-size: 0.85rem;
+      color: #4b4b4b;
+      font-weight: 600;
+      display: block;
+      margin-top: 12px;
+    }
+    input, button {
+      width: 100%;
+      padding: 11px 12px;
+      margin-top: 6px;
+      border-radius: 8px;
+      border: 1px solid #d9e2ec;
+      font-size: 0.95rem;
+    }
+    input:focus {
+      outline: none;
+      border-color: #0b4f9c;
+      box-shadow: 0 0 0 3px rgba(11, 79, 156, 0.12);
+    }
+    button {
+      background: linear-gradient(135deg, #0b4f9c 0%, #0f7bbf 100%);
+      color: #fff;
+      border: 0;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 14px;
+    }
+    button:hover { filter: brightness(1.03); }
+    button:disabled { opacity: 0.7; cursor: not-allowed; }
+    .secondary {
+      background: #e6f0fb;
+      color: #0b4f9c;
+      border: 1px solid #cfe0f7;
+    }
+    .auth-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 12px 0 6px;
+    }
+    .tab-btn {
+      background: #f0f4f8;
+      color: #52606d;
+      border: 1px solid #d9e2ec;
+      margin-top: 0;
+    }
+    .tab-btn.active {
+      background: #0b4f9c;
+      color: #fff;
+      border-color: #0b4f9c;
+    }
+    .auth-panel { display: none; }
+    .auth-panel.active { display: block; }
+    .error { color: #c62828; font-size: 14px; min-height: 18px; margin-top: 10px; }
+    .hint { color: #546e7a; font-size: 12px; margin-top: 8px; }
+    .success { color: #2e7d32; font-size: 14px; min-height: 18px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">
+      <h2>HPTU Attendance System</h2>
+      <p>Admin Login</p>
+    </div>
+    <div class="auth-tabs">
+      <button id="tabSignin" class="tab-btn active" type="button">Sign In</button>
+      <button id="tabSignup" class="tab-btn" type="button">Sign Up</button>
+    </div>
+
+    <div id="signinPanel" class="auth-panel active">
+      <label for="apiUrl">API URL</label>
+      <input id="apiUrl" type="text" value="http://localhost:5050/api" placeholder="http://localhost:5050/api" />
+      <label for="username">Username</label>
+      <input id="username" type="text" placeholder="Username" />
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="Password" />
+      <button id="loginBtn">Login</button>
+    </div>
+
+    <div id="signupPanel" class="auth-panel">
+      <label for="regUsername">New admin username</label>
+      <input id="regUsername" type="text" placeholder="New admin username" />
+      <label for="regEmail">New admin email</label>
+      <input id="regEmail" type="email" placeholder="New admin email" />
+      <label for="regPassword">New admin password</label>
+      <input id="regPassword" type="password" placeholder="New admin password" />
+      <label for="regConfirmPassword">Confirm password</label>
+      <input id="regConfirmPassword" type="password" placeholder="Confirm password" />
+      <button id="registerBtn" class="secondary" type="button">Create Admin</button>
+    </div>
+    <button id="healthBtn" class="secondary" type="button">Check Backend Health</button>
+    <div class="success" id="status"></div>
+    <div class="error" id="error"></div>
+    <div class="hint">Tip: if login fails, create admin from terminal using ./create_admin.sh</div>
+  </div>
+
+  <script>
+    const apiUrlEl = document.getElementById('apiUrl');
+    const usernameEl = document.getElementById('username');
+    const passwordEl = document.getElementById('password');
+    const loginBtn = document.getElementById('loginBtn');
+    const registerBtn = document.getElementById('registerBtn');
+    const healthBtn = document.getElementById('healthBtn');
+    const errorEl = document.getElementById('error');
+    const statusEl = document.getElementById('status');
+    const tabSignin = document.getElementById('tabSignin');
+    const tabSignup = document.getElementById('tabSignup');
+    const signinPanel = document.getElementById('signinPanel');
+    const signupPanel = document.getElementById('signupPanel');
+    let authActionsEnabled = true;
+    let healthCheckInFlight = false;
+    let healthPollTimer = null;
+
+    function setActiveTab(tab) {
+      const isSignin = tab === 'signin';
+      tabSignin.classList.toggle('active', isSignin);
+      tabSignup.classList.toggle('active', !isSignin);
+      signinPanel.classList.toggle('active', isSignin);
+      signupPanel.classList.toggle('active', !isSignin);
+      errorEl.textContent = '';
+      statusEl.textContent = '';
+    }
+
+    tabSignin.addEventListener('click', () => setActiveTab('signin'));
+    tabSignup.addEventListener('click', () => setActiveTab('signup'));
+
+    function setAuthActionsEnabled(enabled) {
+      authActionsEnabled = enabled;
+      loginBtn.disabled = !enabled;
+      if (registerBtn) registerBtn.disabled = !enabled;
+    }
+
+    function formatApiError(res, data, fallback) {
+      if (res?.status === 503 && (data?.error === 'Database unavailable' || data?.message)) {
+        return 'Database unavailable. Start MongoDB or set a remote MONGO_URI, then try again.';
+      }
+      return data?.error || data?.message || fallback;
+    }
+
+    async function checkBackendHealth() {
+      if (healthCheckInFlight) return;
+      healthCheckInFlight = true;
+
+      const apiUrl = apiUrlEl.value.trim();
+      errorEl.textContent = '';
+      statusEl.textContent = '';
+
+      healthBtn.disabled = true;
+      healthBtn.textContent = 'Checking...';
+
+      try {
+        const res = await fetch(`${apiUrl}/health`);
+        const data = await res.json();
+
+        if (!res.ok) {
+          setAuthActionsEnabled(false);
+          errorEl.textContent = 'Health check failed.';
+          return;
+        }
+
+        if (data?.degraded) {
+          setAuthActionsEnabled(false);
+          statusEl.textContent = 'Backend reachable, but MongoDB is unavailable (degraded mode). Login and registration will fail until DB is connected.';
+        } else {
+          setAuthActionsEnabled(true);
+          statusEl.textContent = 'Backend and database are healthy.';
+        }
+      } catch (_) {
+        setAuthActionsEnabled(false);
+        errorEl.textContent = 'Backend unreachable.';
+      } finally {
+        healthCheckInFlight = false;
+        healthBtn.disabled = false;
+        healthBtn.textContent = 'Check Backend Health';
+      }
+    }
+
+    if (localStorage.getItem('adminToken')) {
+      window.location.href = '/index.html';
+    }
+
+    apiUrlEl.value = localStorage.getItem('adminApiUrl') || 'http://localhost:5050/api';
+
+    async function login() {
+      const apiUrl = apiUrlEl.value.trim();
+      const username = usernameEl.value.trim();
+      const password = passwordEl.value;
+      errorEl.textContent = '';
+      statusEl.textContent = '';
+
+      if (!username || !password) {
+        errorEl.textContent = 'Username and password are required.';
+        return;
+      }
+
+      if (!authActionsEnabled) {
+        errorEl.textContent = 'Login is disabled while database is unavailable. Connect MongoDB and recheck health.';
+        return;
+      }
+
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Logging in...';
+
+      try {
+        const res = await fetch(`${apiUrl}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+
+        let data = {};
+        try {
+          data = await res.json();
+        } catch (_) {
+          data = { error: 'Invalid server response' };
+        }
+
+        if (!data.success || !data.token) {
+          errorEl.textContent = formatApiError(res, data, 'Login failed');
+          return;
+        }
+
+        localStorage.setItem('adminApiUrl', apiUrl);
+        localStorage.setItem('adminToken', data.token);
+        if (data.user) {
+          localStorage.setItem('adminUser', JSON.stringify(data.user));
+        }
+        statusEl.textContent = 'Login successful. Redirecting...';
+        window.location.href = '/index.html';
+      } catch (e) {
+        errorEl.textContent = 'Unable to connect. Check API URL and backend status.';
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Login';
+      }
+    }
+
+    document.getElementById('loginBtn').addEventListener('click', login);
+
+    registerBtn?.addEventListener('click', async () => {
+      const apiUrl = apiUrlEl.value.trim();
+      const regUsername = document.getElementById('regUsername').value.trim();
+      const regEmail = document.getElementById('regEmail').value.trim();
+      const regPassword = document.getElementById('regPassword').value;
+      const regConfirmPassword = document.getElementById('regConfirmPassword').value;
+
+      errorEl.textContent = '';
+      statusEl.textContent = '';
+
+      if (!regUsername || !regEmail || !regPassword) {
+        errorEl.textContent = 'All registration fields are required.';
+        return;
+      }
+
+      if (regPassword !== regConfirmPassword) {
+        errorEl.textContent = 'Passwords do not match.';
+        return;
+      }
+
+      if (!authActionsEnabled) {
+        errorEl.textContent = 'Registration is disabled while database is unavailable. Connect MongoDB and recheck health.';
+        return;
+      }
+
+      registerBtn.disabled = true;
+      registerBtn.textContent = 'Creating...';
+
+      try {
+        const res = await fetch(`${apiUrl}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: regUsername,
+            email: regEmail,
+            password: regPassword,
+            role: 'admin',
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          errorEl.textContent = formatApiError(res, data, 'Failed to create admin user.');
+          return;
+        }
+
+        statusEl.textContent = 'Admin created. You can now login.';
+        usernameEl.value = regUsername;
+        passwordEl.value = regPassword;
+      } catch (_) {
+        errorEl.textContent = 'Unable to connect. Check API URL and backend status.';
+      } finally {
+        registerBtn.disabled = false;
+        registerBtn.textContent = 'Create Admin';
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        if (signinPanel.classList.contains('active')) {
+          login();
+        } else if (signupPanel.classList.contains('active')) {
+          registerBtn?.click();
+        }
+      }
+    });
+
+    healthBtn.addEventListener('click', checkBackendHealth);
+
+    checkBackendHealth();
+    healthPollTimer = setInterval(checkBackendHealth, 10000);
+    window.addEventListener('beforeunload', () => {
+      if (healthPollTimer) {
+        clearInterval(healthPollTimer);
+        healthPollTimer = null;
+      }
+    });
+  </script>
+</body>
+</html>

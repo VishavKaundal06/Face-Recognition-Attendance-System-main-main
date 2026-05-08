@@ -1,0 +1,133 @@
+/* Student Dashboard Specific Styles */
+.timetable-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.timetable-card {
+    background: var(--bg-card, #fff);
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-left: 4px solid var(--primary-color, #4a90e2);
+}
+
+.timetable-card h4 {
+    margin: 0 0 10px 0;
+    color: var(--primary-color);
+}
+
+.timetable-card p {
+    margin: 5px 0;
+    font-size: 0.9rem;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.stat-card h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+.stat-card p {
+    margin: 10px 0 0 0;
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+/* Dark Mode Styles */
+body.dark-mode {
+    background: #0f172a;
+    color: #e2e8f0;
+}
+
+body.dark-mode .container {
+    background: #111827;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode header {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+}
+
+body.dark-mode .input-field {
+    background-color: #2d3748;
+    color: #e2e8f0;
+    border-color: #4a5568;
+}
+
+body.dark-mode .input-field:focus {
+    border-color: #f37321;
+    box-shadow: 0 0 0 3px rgba(243, 115, 33, 0.3);
+}
+
+body.dark-mode .btn-secondary {
+    background-color: #4a5568;
+    border-color: #4a5568;
+    color: #e2e8f0;
+}
+
+body.dark-mode .btn-secondary:hover {
+    background-color: #2d3748;
+    border-color: #2d3748;
+}
+
+body.dark-mode .nav-tabs {
+    border-bottom-color: #4a5568;
+}
+
+body.dark-mode .tab-btn {
+    color: #a0aec0;
+}
+
+body.dark-mode .tab-btn:hover {
+    color: #f37321;
+}
+
+body.dark-mode .tab-btn.active {
+    color: #f37321;
+    border-bottom-color: #f37321;
+}
+
+body.dark-mode .result-box {
+    background-color: #2d3748;
+    border-left-color: #f37321;
+}
+
+body.dark-mode #statusContent {
+    background-color: #1a202c;
+    border-color: #2d3748;
+}
+
+body.dark-mode .modal-content {
+    background: #1a202c;
+    border-top-color: #f37321;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .close-btn {
+    color: #a0aec0;
+}
+
+body.dark-mode .close-btn:hover {
+    color: #e2e8f0;
+}

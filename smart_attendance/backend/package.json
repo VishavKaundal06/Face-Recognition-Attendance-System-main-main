@@ -1,0 +1,39 @@
+{
+  "name": "smart-attendance-backend",
+  "version": "1.0.0",
+  "description": "HPTU Attendance System - Face Recognition Backend",
+  "main": "server.js",
+  "scripts": {
+    "server": "node scripts/stop_backend.js && node server.js",
+    "start": "node server.js",
+    "stop": "node scripts/stop_backend.js",
+    "restart": "node scripts/stop_backend.js && node server.js",
+    "dev": "nodemon server.js",
+    "create-admin": "node scripts/create_admin.js"
+  },
+  "keywords": [
+    "attendance",
+    "face-recognition"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.4.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.4.1",
+    "express-validator": "^7.0.0",
+    "helmet": "^7.1.0",
+    "json2csv": "^6.0.0-alpha.2",
+    "jsonwebtoken": "^9.0.0",
+    "mongoose": "^7.0.0",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^8.0.4",
+    "pdfkit": "^0.18.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
