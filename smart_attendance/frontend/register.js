@@ -1,4 +1,18 @@
-const API_URL = localStorage.getItem('apiUrl') || 'http://localhost:5050/api';
+function normalizeApiUrl(value) {
+    if (!value) return '';
+
+    const trimmed = String(value).trim().replace(/\/+$/, '');
+    if (!trimmed) return '';
+
+    if (/^https?:\/\//i.test(trimmed)) {
+        return trimmed;
+    }
+
+    return `https://${trimmed}`;
+}
+
+const DEPLOYMENT_API_URL = normalizeApiUrl(import.meta.env.VITE_API_URL || '');
+const API_URL = localStorage.getItem('apiUrl') || DEPLOYMENT_API_URL || 'http://localhost:5050/api';
 
 const courseConfig = {
     'B.Tech': { sems: 8, branches: ['CSE'] },

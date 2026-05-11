@@ -1,6 +1,21 @@
 // Configuration
+function normalizeApiUrl(value) {
+  if (!value) return '';
+
+  const trimmed = String(value).trim().replace(/\/+$/, '');
+  if (!trimmed) return '';
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  return `https://${trimmed}`;
+}
+
+const DEPLOYMENT_API_URL = normalizeApiUrl(import.meta.env.VITE_API_URL || '');
+
 const CONFIG = {
-  API_URL: localStorage.getItem('apiUrl') || 'http://localhost:5050/api',
+  API_URL: localStorage.getItem('apiUrl') || DEPLOYMENT_API_URL || 'http://localhost:5050/api',
   THRESHOLD: parseFloat(localStorage.getItem('threshold')) || 0.7,
   MODEL_URL: 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights/',
   AUTO_MARK: localStorage.getItem('autoMarkEnabled') === 'true',
