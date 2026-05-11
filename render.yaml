@@ -14,9 +14,9 @@ services:
       - key: PORT
         value: 5050
       - key: MONGO_URI
-        sync: false
+        fromSecret: MONGO_URI
       - key: JWT_SECRET
-        sync: false
+        fromSecret: JWT_SECRET
 
   - type: static
     name: smart-attendance-frontend
@@ -31,3 +31,7 @@ services:
           type: web
           name: smart-attendance-backend
           property: host
+
+# single backend service is defined above (smart-attendance-backend).
+# The frontend service remains defined below. If you want a single deployable
+# backend only, you can remove the frontend block.
