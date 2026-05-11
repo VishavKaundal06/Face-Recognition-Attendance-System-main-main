@@ -2,7 +2,10 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI);
+    // Prefer environment variable, but fall back to the provided remote URI when not set.
+    const defaultUri = 'mongodb+srv://vishavkaundal2005_db_user:vishav06@cluster0.rehfle4.mongodb.net/?appName=Cluster0';
+    const mongoUri = process.env.MONGO_URI || defaultUri;
+    const conn = await mongoose.connect(mongoUri);
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     return conn;
