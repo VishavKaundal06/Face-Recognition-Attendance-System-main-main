@@ -27,6 +27,22 @@ const UserSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true
+    },
+    resetOtpHash: {
+      type: String,
+      default: null
+    },
+    resetOtpExpiresAt: {
+      type: Date,
+      default: null
+    },
+    resetOtpAttempts: {
+      type: Number,
+      default: 0
+    },
+    resetOtpLastSentAt: {
+      type: Date,
+      default: null
     }
   },
   { timestamps: true }

@@ -20,6 +20,55 @@ const submitRegBtn = document.getElementById('submitRegBtn');
 let currentStream = null;
 let currentFaceDescriptor = null;
 
+function getLegacyGetUserMedia() {
+    return (
+        navigator.getUserMedia ||
+        navigator.webkitGetUserMedia ||
+        navigator.mozGetUserMedia ||
+        null
+    );
+}
+
+async function requestCameraStream(constraints) {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+            return await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (error) {
+            if (constraints && typeof constraints.video === 'object') {
+                return navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            }
+            throw error;
+        }
+    }
+
+    const legacy = getLegacyGetUserMedia();
+    if (!legacy) {
+        throw new Error('Camera API not supported in this browser.');
+    }
+
+    return new Promise((resolve, reject) => {
+        legacy.call(navigator, constraints, resolve, reject);
+    });
+}
+
+function describeCameraError(error) {
+    if (!error) return 'Unable to access camera.';
+    switch (error.name) {
+        case 'NotAllowedError':
+            return 'Camera permission denied. Allow camera access in Safari settings and macOS Privacy & Security.';
+        case 'NotFoundError':
+            return 'No camera device found.';
+        case 'NotReadableError':
+            return 'Camera is already in use by another app.';
+        case 'OverconstrainedError':
+            return 'Camera does not support the requested resolution.';
+        case 'SecurityError':
+            return 'Camera access requires HTTPS or localhost.';
+        default:
+            return error.message || 'Unable to access camera.';
+    }
+}
+
 async function loadModels() {
     regStatus.textContent = 'Loading AI models...';
     regStartBtn.disabled = true;
@@ -39,17 +88,26 @@ async function loadModels() {
 
 regStartBtn.addEventListener('click', async () => {
     try {
-        currentStream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
+        currentStream = await requestCameraStream({
+            video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+            audio: false
         });
         registerVideo.srcObject = currentStream;
+        registerVideo.muted = true;
+        registerVideo.setAttribute('playsinline', '');
+
+        try {
+            await registerVideo.play();
+        } catch (_) {
+            regStatus.textContent = 'Camera started. Click the video area if it does not start playing.';
+        }
         
         regStartBtn.disabled = true;
         regCaptureBtn.disabled = false;
         regStopBtn.disabled = false;
         regStatus.textContent = 'Camera started. Position your face clearly.';
     } catch (error) {
-        regStatus.textContent = 'Error: Cannot access camera';
+        regStatus.textContent = `Error: ${describeCameraError(error)}`;
         console.error(error);
     }
 });

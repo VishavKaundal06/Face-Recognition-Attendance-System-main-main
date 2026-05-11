@@ -131,6 +131,55 @@ toggleThemeBtn?.addEventListener('click', () => {
   applyTheme();
 });
 
+function getLegacyGetUserMedia() {
+  return (
+    navigator.getUserMedia ||
+    navigator.webkitGetUserMedia ||
+    navigator.mozGetUserMedia ||
+    null
+  );
+}
+
+async function requestCameraStream(constraints) {
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    try {
+      return await navigator.mediaDevices.getUserMedia(constraints);
+    } catch (error) {
+      if (constraints && typeof constraints.video === 'object') {
+        return navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
+      throw error;
+    }
+  }
+
+  const legacy = getLegacyGetUserMedia();
+  if (!legacy) {
+    throw new Error('Camera API not supported in this browser.');
+  }
+
+  return new Promise((resolve, reject) => {
+    legacy.call(navigator, constraints, resolve, reject);
+  });
+}
+
+function describeCameraError(error) {
+  if (!error) return 'Unable to access camera.';
+  switch (error.name) {
+    case 'NotAllowedError':
+      return 'Camera permission denied. Allow camera access in Safari settings and macOS Privacy & Security.';
+    case 'NotFoundError':
+      return 'No camera device found.';
+    case 'NotReadableError':
+      return 'Camera is already in use by another app.';
+    case 'OverconstrainedError':
+      return 'Camera does not support the requested resolution.';
+    case 'SecurityError':
+      return 'Camera access requires HTTPS or localhost.';
+    default:
+      return error.message || 'Unable to access camera.';
+  }
+}
+
 // Load face-api models
 async function loadModels() {
   try {
@@ -152,23 +201,32 @@ async function loadModels() {
 // Start webcam 
 startBtn.addEventListener('click', async () => {
   try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 }, height: { ideal: 720 } }
+    stream = await requestCameraStream({
+      video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false
     });
     
     video.srcObject = stream;
+    video.muted = true;
+    video.setAttribute('playsinline', '');
     video.addEventListener('play', () => {
       startFaceDetection();
       captureBtn.disabled = false;
       detectionStatus.textContent = '✓ Webcam started - Face detection active';
-    });
+    }, { once: true });
+
+    try {
+      await video.play();
+    } catch (_) {
+      detectionStatus.textContent = 'Camera started. Click the video area if it does not start playing.';
+    }
     
     startBtn.disabled = true;
     stopBtn.disabled = false;
     
   } catch (error) {
     console.error('Error accessing webcam:', error);
-    detectionStatus.textContent = '✗ Error: Unable to access webcam. Check permissions.';
+    detectionStatus.textContent = `Error: ${describeCameraError(error)}`;
   }
 });
 
@@ -177,6 +235,8 @@ stopBtn.addEventListener('click', () => {
   if (stream) {
     stream.getTracks().forEach((track) => track.stop());
   }
+
+  video.srcObject = null;
   
   if (detectionInterval) {
     clearInterval(detectionInterval);

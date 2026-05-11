@@ -96,6 +96,24 @@
     .error { color: #c62828; font-size: 14px; min-height: 18px; margin-top: 10px; }
     .hint { color: #546e7a; font-size: 12px; margin-top: 8px; }
     .success { color: #2e7d32; font-size: 14px; min-height: 18px; margin-top: 10px; }
+    .link-btn {
+      background: none;
+      border: none;
+      color: #0b4f9c;
+      padding: 0;
+      margin-top: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      text-align: left;
+    }
+    .link-btn:hover { text-decoration: underline; }
+    .forgot-panel {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 10px;
+      background: #f6f9fc;
+      border: 1px solid #e3edf7;
+    }
   </style>
 </head>
 <body>
@@ -116,6 +134,20 @@
       <input id="username" type="text" placeholder="Username" />
       <label for="password">Password</label>
       <input id="password" type="password" placeholder="Password" />
+      <button id="forgotPasswordBtn" class="link-btn" type="button">Forgot password?</button>
+      <div id="forgotPanel" class="forgot-panel" style="display: none;">
+        <label for="forgotEmail">Email</label>
+        <input id="forgotEmail" type="email" placeholder="admin@example.com" />
+        <button id="sendOtpBtn" class="secondary" type="button">Send OTP</button>
+        <label for="otpCode">OTP</label>
+        <input id="otpCode" type="text" inputmode="numeric" maxlength="8" placeholder="Enter OTP" />
+        <label for="newPassword">New Password</label>
+        <input id="newPassword" type="password" placeholder="New password" />
+        <label for="confirmNewPassword">Confirm Password</label>
+        <input id="confirmNewPassword" type="password" placeholder="Confirm password" />
+        <button id="resetPasswordBtn" class="secondary" type="button">Reset Password</button>
+        <div class="hint">We will email a one-time code. Codes expire in about 10 minutes.</div>
+      </div>
       <button id="loginBtn">Login</button>
     </div>
 
@@ -149,6 +181,14 @@
     const tabSignup = document.getElementById('tabSignup');
     const signinPanel = document.getElementById('signinPanel');
     const signupPanel = document.getElementById('signupPanel');
+    const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
+    const forgotPanel = document.getElementById('forgotPanel');
+    const forgotEmailEl = document.getElementById('forgotEmail');
+    const sendOtpBtn = document.getElementById('sendOtpBtn');
+    const otpCodeEl = document.getElementById('otpCode');
+    const newPasswordEl = document.getElementById('newPassword');
+    const confirmNewPasswordEl = document.getElementById('confirmNewPassword');
+    const resetPasswordBtn = document.getElementById('resetPasswordBtn');
     let authActionsEnabled = true;
     let healthCheckInFlight = false;
     let healthPollTimer = null;
@@ -161,15 +201,32 @@
       signupPanel.classList.toggle('active', !isSignin);
       errorEl.textContent = '';
       statusEl.textContent = '';
+      if (forgotPanel) {
+        forgotPanel.style.display = 'none';
+      }
+      if (forgotEmailEl) forgotEmailEl.value = '';
+      if (otpCodeEl) otpCodeEl.value = '';
+      if (newPasswordEl) newPasswordEl.value = '';
+      if (confirmNewPasswordEl) confirmNewPasswordEl.value = '';
     }
 
     tabSignin.addEventListener('click', () => setActiveTab('signin'));
     tabSignup.addEventListener('click', () => setActiveTab('signup'));
 
+    forgotPasswordBtn?.addEventListener('click', () => {
+      if (!forgotPanel) return;
+      forgotPanel.style.display = forgotPanel.style.display === 'none' ? 'block' : 'none';
+    });
+
+    sendOtpBtn?.addEventListener('click', sendOtp);
+    resetPasswordBtn?.addEventListener('click', resetPassword);
+
     function setAuthActionsEnabled(enabled) {
       authActionsEnabled = enabled;
       loginBtn.disabled = !enabled;
       if (registerBtn) registerBtn.disabled = !enabled;
+      if (sendOtpBtn) sendOtpBtn.disabled = !enabled;
+      if (resetPasswordBtn) resetPasswordBtn.disabled = !enabled;
     }
 
     function formatApiError(res, data, fallback) {
@@ -177,6 +234,125 @@
         return 'Database unavailable. Start MongoDB or set a remote MONGO_URI, then try again.';
       }
       return data?.error || data?.message || fallback;
+    }
+
+    async function sendOtp() {
+      const apiUrl = apiUrlEl.value.trim();
+      const email = forgotEmailEl?.value.trim();
+      errorEl.textContent = '';
+      statusEl.textContent = '';
+
+      if (!email) {
+        errorEl.textContent = 'Email is required.';
+        return;
+      }
+
+      if (!authActionsEnabled) {
+        errorEl.textContent = 'Password reset is disabled while database is unavailable.';
+        return;
+      }
+
+      sendOtpBtn.disabled = true;
+      sendOtpBtn.textContent = 'Sending...';
+
+      try {
+        const res = await fetch(`${apiUrl}/auth/forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+
+        let data = {};
+        try {
+          data = await res.json();
+        } catch (_) {
+          data = { error: 'Invalid server response' };
+        }
+
+        if (!res.ok || !data.success) {
+          errorEl.textContent = formatApiError(res, data, 'Unable to send OTP.');
+          return;
+        }
+
+        statusEl.textContent = data.message || 'OTP sent to your email address.';
+      } catch (_) {
+        errorEl.textContent = 'Unable to connect. Check API URL and backend status.';
+      } finally {
+        sendOtpBtn.disabled = false;
+        sendOtpBtn.textContent = 'Send OTP';
+      }
+    }
+
+    async function resetPassword() {
+      const apiUrl = apiUrlEl.value.trim();
+      const email = forgotEmailEl?.value.trim();
+      const otp = otpCodeEl?.value.trim();
+      const newPassword = newPasswordEl?.value || '';
+      const confirmPassword = confirmNewPasswordEl?.value || '';
+
+      errorEl.textContent = '';
+      statusEl.textContent = '';
+
+      if (!email || !otp || !newPassword) {
+        errorEl.textContent = 'Email, OTP, and new password are required.';
+        return;
+      }
+
+      if (!/^\d{4,8}$/.test(otp)) {
+        errorEl.textContent = 'OTP must be 4-8 digits.';
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        errorEl.textContent = 'Password must be at least 6 characters.';
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        errorEl.textContent = 'Passwords do not match.';
+        return;
+      }
+
+      if (!authActionsEnabled) {
+        errorEl.textContent = 'Password reset is disabled while database is unavailable.';
+        return;
+      }
+
+      resetPasswordBtn.disabled = true;
+      resetPasswordBtn.textContent = 'Resetting...';
+
+      try {
+        const res = await fetch(`${apiUrl}/auth/reset-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, otp, newPassword })
+        });
+
+        let data = {};
+        try {
+          data = await res.json();
+        } catch (_) {
+          data = { error: 'Invalid server response' };
+        }
+
+        if (!res.ok || !data.success) {
+          errorEl.textContent = formatApiError(res, data, 'Password reset failed.');
+          return;
+        }
+
+        statusEl.textContent = data.message || 'Password updated. You can now sign in.';
+        if (forgotPanel) {
+          forgotPanel.style.display = 'none';
+        }
+        if (otpCodeEl) otpCodeEl.value = '';
+        if (newPasswordEl) newPasswordEl.value = '';
+        if (confirmNewPasswordEl) confirmNewPasswordEl.value = '';
+      } catch (_) {
+        errorEl.textContent = 'Unable to connect. Check API URL and backend status.';
+      } finally {
+        resetPasswordBtn.disabled = false;
+        resetPasswordBtn.textContent = 'Reset Password';
+      }
     }
 
     async function checkBackendHealth() {
@@ -339,6 +515,16 @@
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
         if (signinPanel.classList.contains('active')) {
+          const forgotVisible = forgotPanel && forgotPanel.style.display !== 'none';
+          if (forgotVisible) {
+            const activeId = document.activeElement?.id;
+            if (activeId === 'forgotEmail') {
+              sendOtp();
+            } else if (['otpCode', 'newPassword', 'confirmNewPassword'].includes(activeId)) {
+              resetPassword();
+            }
+            return;
+          }
           login();
         } else if (signupPanel.classList.contains('active')) {
           registerBtn?.click();

@@ -29,6 +29,26 @@ router.post(
 	authController.register
 );
 
+// Request password reset OTP
+router.post(
+	'/forgot-password',
+	[body('email').isEmail().withMessage('Valid email is required')],
+	validateRequest,
+	authController.requestPasswordReset
+);
+
+// Reset password with OTP
+router.post(
+	'/reset-password',
+	[
+		body('email').isEmail().withMessage('Valid email is required'),
+		body('otp').trim().matches(/^\d{4,8}$/).withMessage('OTP must be 4-8 digits'),
+		body('newPassword').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+	],
+	validateRequest,
+	authController.resetPasswordWithOtp
+);
+
 // Current authenticated user
 router.get('/me', authenticateToken, authController.me);
 
